@@ -1,0 +1,193 @@
+---
+
+- name: installing pip required packages on centos
+  yum:
+    state: present
+    name:
+      - python-devel
+      - mysql-devel
+      - gcc
+
+- name: ensure pip is installed.
+  package:
+    name: "{{ pip_package }}"
+    state: present
+
+- name: ensure pip_install_packages are installed.
+  pip:
+    name:
+      - mysql-python
+      - pymysql
+  when: mysql_secure_installation and mysql_root_password is defined
+
+- name: add repo file
+  template:
+    src: mariadb_centos.repo.j2
+    dest: /etc/yum.repos.d/mariadb.repo
+    owner: root
+    group: root
+    mode: 0644
+
+- name: install mariadb
+  yum:
+    enablerepo: mariadb
+    state: present
+    name:
+      - MariaDB-server
+      - MariaDB-client
+      - MariaDB-devel
+
+- name: create mysql directory if it doesn't exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    recurse: true
+    mode: 0755
+    owner: mysql
+    group: mysql
+  with_items:
+    - /var/log/mysql
+  changed_when: false
+
+- name: start and enable mariabd service
+  systemd:
+    name: mysql
+    state: started
+    enabled: true
+
+# create root .my.cnf config file
+- name: add .my.cnf
+  template:
+    src: my.cnf.j2
+    dest: /root/.my.cnf
+    owner: root
+    group: root
+    mode: 0600
+  notify: restart mysql
+
+# set root password
+# update mysql.user set password=password('mysecret') where user='root';
+# flush privileges;
+
+- name: set root password
+  mysql_user:
+    login_password: "{{ mysql_root_password }}"
+    check_implicit_admin: true
+    name: root
+    host: "{{ item }}"
+    password: "{{ mysql_root_password }}"
+    state: present
+  with_items:
+    - localhost
+    - 127.0.0.1
+    - ::1
+
+- name: input timezone format file to mysql engine
+  shell: mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql mysql
+  changed_when: false
+
+- name: reload privilege tables
+  command: 'mysql -ne "{{ item }}"'
+  with_items:
+    - flush privileges
+  changed_when: false
+
+- name: remove anonymous users
+  command: 'mysql -ne "{{ item }}"'
+  with_items:
+    - delete from mysql.user where user=''
+  changed_when: false
+
+- name: disallow root login remotely
+  command: 'mysql -ne "{{ item }}"'
+  with_items:
+    - delete from mysql.user where user='root' and host not in ('localhost', '127.0.0.1', '::1')
+  changed_when: false
+
+- name: remove test database and access to it
+  command: 'mysql -ne "{{ item }}"'
+  with_items:
+    - drop database if exists test
+    - delete from mysql.db where db='test' or db='test\\_%'
+  changed_when: false
+
+- name: reload privilege tables
+  command: 'mysql -ne "{{ item }}"'
+  with_items:
+    - flush privileges
+  changed_when: false
+
+- name: add configuration
+  template:
+    src: cacti.cnf.j2
+    dest: "{{ mysql_conf_dir[ansible_distribution] }}/cacti.cnf"
+    owner: root
+    group: root
+    mode: 0644
+  when: mysql_conf_add_subconfig
+  notify: restart mysql
+
+## configuring mysql server for cacti installation
+
+- name: Check if the cacti.sql file is imported
+  stat:
+    path: /tmp/cacti.sql
+  register: cacti_sql_status
+
+- name: copy database dump file
+  copy:
+    src: "/var/www/html/cacti/cacti.sql"
+    dest: /tmp
+    remote_src: true
+  when: cacti_sql_status.stat.exists == false
+
+- name: create mariadb new database with name "{{ database_cacti_name }}"
+  mysql_db:
+    name: "{{ database_cacti_name }}"
+    encoding: "{{ database_cacti_encoding }}"
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    login_host: "{{ mysql_host }}"
+    login_port: "{{ mysql_port }}"
+  when: cacti_sql_status.stat.exists == false
+
+- name: set mariadb database cacti password
+  mysql_user:
+    login_host: "{{ mysql_host }}"
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    name: "{{ database_cacti_username  }}"
+    password: "{{ database_cacti_password }}"
+    host: "{{ database_cacti_allow_host }}"
+    priv: "{{ database_cacti_name }}.*:all"
+    state: present
+  changed_when: false
+
+- name: set mariadb database cacti date timezone
+  mysql_user:
+    login_host: "{{ mysql_host }}"
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    name: "{{ database_cacti_username  }}"
+    host: "{{ database_cacti_allow_host }}"
+    priv: 'mysql.time_zone_name:select'
+    append_privs: true
+    state: present
+  changed_when: false
+
+- name: reload privilege tables
+  command: 'mysql -ne "{{ item }}"'
+  with_items:
+    - flush privileges
+  changed_when: false
+
+- name: install cacti tables to mysql
+  mysql_db:
+    name: "{{ database_cacti_name }}"
+    state: import
+    target: /tmp/cacti.sql
+    login_host: "{{ mysql_host }}"
+    login_port: "{{ mysql_port }}"
+    login_user: "{{ database_cacti_username }}"
+    login_password: "{{ database_cacti_password }}"
+  when: cacti_sql_status.stat.exists == false

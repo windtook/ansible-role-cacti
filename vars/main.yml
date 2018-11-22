@@ -1,0 +1,6 @@
+---
+# vars file for windtook.ansible-role-source-cacti
+
+mysql_conf_dir:
+  "CentOS": /etc/my.cnf.d
+  "Ubuntu": /etc/mysql/conf.d

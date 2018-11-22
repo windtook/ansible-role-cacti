@@ -1,0 +1,39 @@
+---
+
+- name: Install PHP
+  yum:
+    state: present
+    name:
+      - php-mysql
+      - php-pear
+      - php-common
+      - php-gd
+      - php-devel
+      - php
+      - php-mbstring
+      - php-cli
+      - php-ldap
+
+- name: Install PHP-SNMP
+  yum:
+    state: present
+    name: php-snmp
+
+- name: Install NET-SNMP
+  yum:
+    state: present
+    name:
+      - net-snmp-utils
+      - net-snmp-libs
+
+- name: Install RRDTool
+  yum:
+    state: present
+    name: rrdtool
+
+- name: Set date.timezone for CLI
+  lineinfile:
+    dest: /etc/php.ini
+    regexp: ";date.timezone ="
+    line: "date.timezone = {{ date_timezone }}"
+  changed_when: false

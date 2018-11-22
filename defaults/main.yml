@@ -1,0 +1,44 @@
+---
+# defaults file for windtook.ansible-role-source-cacti
+
+## Web Server Apache Setup
+# if apache_cacti_ssl is true,
+# the YourOwnCertFile_key and YourOwnCertFile_crt is must existence.
+set_apache_firewalld: false
+apache_cacti_ssl: false
+YourOwnCertFile_key: ""
+YourOwnCertFile_crt: ""
+
+## PHP date timezone
+date_timezone: Asia/Shanghai
+
+## MariaDB Version
+mariadb_version: 10.0
+
+## Mariadb securety setup
+mysql_secure_installation: true
+
+## copy template to remote machine mysql service configuration file
+mysql_conf_add_subconfig: true
+
+## For Python 3, use python3-pip.
+pip_package: python-pip
+pip_executable: "{{ 'pip3' if pip_package.startswith('python3') else 'pip' }}"
+
+## MariaDB Setup Variables
+mysql_host: localhost
+mysql_port: 3306
+mysql_root_password: Tom@Jerry
+database_cacti_name: cacti
+database_cacti_encoding: utf8mb4
+database_cacti_username: cacti
+database_cacti_password: Tom@Jerry
+database_cacti_allow_host: localhost
+
+## Cacti Version
+# click url https://www.cacti.net/downloads
+# View all supported versions
+cacti_version: 1.1.38
+
+## Install Cacti Spine
+install_spine: true

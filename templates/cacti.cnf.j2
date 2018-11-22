@@ -1,0 +1,23 @@
+[mysqld]
+character-set-client-handshake = FALSE
+character_set_server = utf8mb4
+character_set_filesystem = utf8mb4
+character_set_client = utf8mb4
+character-set-client-handshake = 0
+collation_server = utf8mb4_unicode_ci
+
+default_time_zone = {{ date_timezone }}
+max_heap_table_size = {{ ansible_memtotal_mb // 8 }}M
+max_allowed_packet = 33554432
+tmp_table_size = 128M
+join_buffer_size = 128M
+innodb_buffer_pool_size = {{ ansible_memtotal_mb // 3 }}M
+innodb_doublewrite = OFF
+innodb_additional_mem_pool_size = 160M
+innodb_read_io_threads = 64
+innodb_write_io_threads = 32
+innodb_flush_log_at_timeout = 6
+log-error                      = /var/log/mysql/mysql-error.log
+slow-query-log-file            = /var/log/mysql/mysql-slow.log
+log-queries-not-using-indexes  = 1
+slow-query-log                 = 1

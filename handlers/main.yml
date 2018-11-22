@@ -1,0 +1,12 @@
+---
+# handlers file for windtook.ansible-role-source-cacti
+
+- name: Restart Apache Service
+  systemd:
+    state: restarted
+    name: httpd.service
+
+- name: restart mysql
+  systemd:
+    name: mysql
+    state: restarted

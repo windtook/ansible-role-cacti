@@ -1,0 +1,45 @@
+---
+
+- name: Install Spine
+  yum:
+    name:
+      - make
+      - autoconf
+      - automake
+      - libtool
+      - dos2unix
+      - help2man
+      - openssl-devel
+      - net-snmp-devel
+
+- name: Download cacti-spine {{ cacti_version }} tarball
+  get_url:
+    url: "https://www.cacti.net/downloads/spine/cacti-spine-{{ cacti_version }}.tar.gz"
+    dest: /tmp/cacti-spine.tar.gz
+
+- name: Extract /tmp/cacti-sphinx.tar.gz into /tmp/cacti-spine-{{ cacti_version }}
+  unarchive:
+    src: /tmp/cacti-spine.tar.gz
+    dest: /tmp
+    remote_src: true
+
+- name: check if /usr/local/spine/bin/spine existed
+  stat:
+    path: /usr/local/spine/bin/spine
+  register: spine_binary_existed
+
+- name: Run the configure script and compile spine
+  shell: /usr/bin/sh ./configure && make && make install
+  args:
+    chdir: "/tmp/cacti-spine-{{ cacti_version }}"
+    executable: /usr/bin/sh
+  when: spine_binary_existed.stat.exists == false
+
+- name: upload spine.conf template
+  template:
+    src: spine.conf.j2
+    dest: /usr/local/spine/etc/spine.conf
+    owner: root
+    group: root
+    mode: 0640
+    backup: true

@@ -1,0 +1,37 @@
+---
+# tasks file for windtook.ansible-role-source-cacti
+
+- name: Install EPEL repo
+  yum:
+    state: present
+    name: epel-release
+
+- name: Only update installed packages
+  yum:
+    update_only: true
+
+- name: Web Server
+  include_tasks: apache.yml
+
+- name: PHP
+  include_tasks: php.yml
+
+- name: Cacti Service
+  include_tasks: cacti.yml
+
+- name: Database Server
+  include_tasks: mariadb.yml
+
+- name: cacti plugin cacti
+  include_tasks: spine.yml
+  when: install_spine
+
+- name: Enable and Start Apache\SNMP
+  systemd:
+    enabled: true
+    state: started
+    daemon_reload: true
+    name: "{{ item }}"
+  with_items:
+    - httpd
+    - snmpd

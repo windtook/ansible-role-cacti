@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  author: renkeju
+  description: cacti install ansible role
+  company: "Beijing Internete harbor Technology Co., Ltd"
+  license: license (BSD, MIT)
+  min_ansible_version: 2.4
+  platforms:
+    - name: EL
+      versions:
+        - 7
+  galaxy_tags:
+    - server
+    - system
+    - web
+    - cacti
+    - mariadb
+    - Apache
+    - php

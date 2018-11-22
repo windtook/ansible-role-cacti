@@ -1,0 +1,61 @@
+---
+
+- name: Download cacti {{ cacti_version }} tarball
+  get_url:
+    url: "https://www.cacti.net/downloads/cacti-{{ cacti_version }}.tar.gz"
+    dest: /tmp/cacti.tar.gz
+
+- name: check if /var/www/html/cacti-{{ cacti_version }} existed
+  stat:
+    path: "/var/www/html/cacti-{{ cacti_version }}"
+  register: cacti_version_file_existed
+
+- name: Extract cacti.tar.gz into /var/www/html/cacti
+  unarchive:
+    src: /tmp/cacti.tar.gz
+    dest: /var/www/html
+    remote_src: true
+  when: cacti_version_file_existed.stat.exists == false
+
+- name: check if /var/www/html/cacti existed
+  stat:
+    path: /var/www/html/cacti
+  register: cacti_syslink_file_existed
+
+- name: link cacti-{{ cacti_version }} to cacti
+  file:
+    src: "/var/www/html/cacti-{{ cacti_version }}"
+    dest: /var/www/html/cacti
+    owner: apache
+    group: apache
+    mode: 0750
+    state: link
+  when: cacti_syslink_file_existed.stat.exists == false
+
+- name: change cacti directory owner and group
+  file:
+    path: "/var/www/html/cacti-{{ cacti_version }}"
+    owner: apache
+    group: apache
+    mode: 0750
+    recurse: true
+  when: cacti_syslink_file_existed.stat.exists == false
+
+- name: Configure MariaDB settings for Cacti
+  template:
+    src: config.php.j2
+    dest: /var/www/html/cacti/include/config.php
+    owner: apache
+    group: apache
+    mode: 0640
+    backup: false
+  when: cacti_syslink_file_existed.stat.exists == false
+
+- name: Setting Cron for Cacti
+  template:
+    src: cacti.cron.j2
+    dest: /etc/cron.d/cacti
+    owner: root
+    group: root
+    mode: 0640
+  when: install_spine == false

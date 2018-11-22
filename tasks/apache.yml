@@ -1,0 +1,35 @@
+---
+
+- name: Configuring Firewall For Cacti
+  firewalld:
+    zone: public
+    service: http
+    state: enabled
+    permanent: true
+  when: set_apache_firewalld
+
+- name: Install Apache
+  yum:
+    state: present
+    name:
+      - httpd
+      - httpd-devel
+
+- name: Configureing Apache Server for Cacti
+  template:
+    src: apache_cacti.conf.j2
+    dest: /etc/httpd/conf.d/cacti.conf
+    owner: root
+    group: root
+    mode: 0644
+    backup: true
+
+- name: Configureing Apache Server SSL for Cacti
+  template:
+    src: apache_cacti_ssl.conf.j2
+    dest: /etc/httpd/conf.d/cacti_ssl.conf
+    owner: root
+    group: root
+    mode: 0644
+    backup: true
+  when: apache_cacti_ssl
